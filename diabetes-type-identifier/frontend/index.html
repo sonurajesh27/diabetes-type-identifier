@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Diabetes Type Identifier</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <header>
+    <div class="header-inner">
+      <span class="logo">🩺</span>
+      <div>
+        <h1>AI Diabetes Type Identifier</h1>
+        <p class="subtitle">ML-powered clinical classification — Type 1, Type 2, or No Diabetes</p>
+      </div>
+
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ── Tabs ── -->
+    <div class="tabs">
+      <button class="tab active" data-tab="manual">Manual Entry</button>
+      <button class="tab" data-tab="csv">Upload CSV</button>
+      <button class="tab" data-tab="train">Train Model</button>
+    </div>
+
+    <!-- ── Manual Entry ── -->
+    <section id="tab-manual" class="tab-content active">
+      <form id="manual-form" class="card">
+        <h2>Patient Details</h2>
+        <div class="form-grid">
+          <div class="field">
+            <label for="Age">Age <span class="unit">(years)</span></label>
+            <input type="number" id="Age" name="Age" min="1" max="120" placeholder="e.g. 45" required />
+          </div>
+          <div class="field">
+            <label for="Glucose">Glucose <span class="unit">(mg/dL)</span></label>
+            <input type="number" id="Glucose" name="Glucose" min="0" max="500" placeholder="e.g. 148" required />
+          </div>
+          <div class="field">
+            <label for="BMI">BMI <span class="unit">(kg/m²)</span></label>
+            <input type="number" id="BMI" name="BMI" step="0.1" min="0" max="80" placeholder="e.g. 33.6" required />
+          </div>
+          <div class="field">
+            <label for="Insulin">Insulin <span class="unit">(μU/mL)</span></label>
+            <input type="number" id="Insulin" name="Insulin" min="0" max="1000" placeholder="e.g. 0" />
+          </div>
+          <div class="field">
+            <label for="BloodPressure">Blood Pressure <span class="unit">(mmHg)</span></label>
+            <input type="number" id="BloodPressure" name="BloodPressure" min="0" max="200" placeholder="e.g. 72" />
+          </div>
+          <div class="field">
+            <label for="SkinThickness">Skin Thickness <span class="unit">(mm)</span></label>
+            <input type="number" id="SkinThickness" name="SkinThickness" min="0" max="100" placeholder="e.g. 35" />
+          </div>
+          <div class="field">
+            <label for="Pregnancies">Pregnancies</label>
+            <input type="number" id="Pregnancies" name="Pregnancies" min="0" max="20" placeholder="e.g. 2" />
+          </div>
+          <div class="field">
+            <label for="DiabetesPedigreeFunction">Pedigree Function</label>
+            <input type="number" id="DiabetesPedigreeFunction" name="DiabetesPedigreeFunction"
+              step="0.001" min="0" max="3" placeholder="e.g. 0.627" />
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary">🔍 Predict</button>
+      </form>
+    </section>
+
+    <!-- ── CSV Upload ── -->
+    <section id="tab-csv" class="tab-content">
+      <div class="card">
+        <h2>Batch Prediction via CSV</h2>
+        <p class="hint">Upload a CSV with columns: Pregnancies, Glucose, BloodPressure, SkinThickness, Insulin, BMI, DiabetesPedigreeFunction, Age</p>
+        <div class="upload-zone" id="csv-drop-zone">
+          <span>📂 Drag & drop CSV here or</span>
+          <label class="btn btn-secondary" for="csv-file-input">Browse file</label>
+          <input type="file" id="csv-file-input" accept=".csv" hidden />
+          <span id="csv-filename" class="filename"></span>
+        </div>
+        <button id="csv-predict-btn" class="btn btn-primary" disabled>🔍 Predict Batch</button>
+      </div>
+    </section>
+
+    <!-- ── Train ── -->
+    <section id="tab-train" class="tab-content">
+      <div class="card">
+        <h2>Train / Retrain Model</h2>
+        <p class="hint">Upload a labeled CSV (requires an <code>Outcome</code> column: 0=No Diabetes, 1=Type 1, 2=Type 2) or use the built-in sample dataset.</p>
+        <div class="upload-zone" id="train-drop-zone">
+          <span>📂 Drag & drop training CSV or</span>
+          <label class="btn btn-secondary" for="train-file-input">Browse file</label>
+          <input type="file" id="train-file-input" accept=".csv" hidden />
+          <span id="train-filename" class="filename"></span>
+        </div>
+        <div class="field" style="max-width:260px; margin-top:1rem;">
+          <label for="model-type">Model Type</label>
+          <select id="model-type">
+            <option value="random_forest">Random Forest</option>
+            <option value="decision_tree">Decision Tree</option>
+          </select>
+        </div>
+        <button id="train-btn" class="btn btn-success">⚙️ Train Model</button>
+        <div id="train-result"></div>
+      </div>
+    </section>
+
+    <!-- ── Result Panel ── -->
+    <section id="result-panel" class="card result-panel hidden">
+      <h2>Prediction Result</h2>
+      <div class="result-main">
+        <div id="result-label" class="result-label"></div>
+        <div id="result-confidence" class="result-confidence"></div>
+      </div>
+
+      <div class="charts-row">
+        <div class="chart-box">
+          <h3>Confidence Scores</h3>
+          <canvas id="confidence-chart"></canvas>
+        </div>
+        <div class="chart-box">
+          <h3>Feature Importance</h3>
+          <canvas id="importance-chart"></canvas>
+        </div>
+      </div>
+
+      <div class="actions-row">
+        <button id="export-pdf-btn" class="btn btn-secondary">📄 Export as PDF</button>
+        <button id="clear-btn" class="btn btn-ghost">✕ Clear</button>
+      </div>
+    </section>
+
+    <!-- ── Batch Results Table ── -->
+    <section id="batch-result-panel" class="card hidden">
+      <h2>Batch Prediction Results</h2>
+      <div id="batch-table-wrapper"></div>
+    </section>
+
+    <!-- ── Loader ── -->
+    <div id="loader" class="loader hidden">
+      <div class="spinner"></div>
+      <p>Processing…</p>
+    </div>
+
+  </main>
+
+  <footer>
+    <p>AI Diabetes Type Identifier &mdash; For research and educational purposes only. Not a substitute for medical advice.</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
